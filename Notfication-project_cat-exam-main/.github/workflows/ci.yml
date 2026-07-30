@@ -46,17 +46,23 @@ jobs:
           python -m pytest tests/ --cov=. --cov-report=term --cov-fail-under=90
 
       - name: Generate HTML Test Report
+        if: always()
+        continue-on-error: true
         run: |
           python -m pytest tests/ --html=report.html --self-contained-html
 
       - name: Generate HTML Coverage Report
+        if: always()
+        continue-on-error: true
         run: |
           python -m pytest tests/ --cov=. --cov-report=html
 
       - name: Upload Test Reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-reports-${{ matrix.python-version }}
           path: |
             report.html
             htmlcov/
+          if-no-files-found: warn
