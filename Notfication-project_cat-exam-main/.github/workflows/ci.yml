@@ -4,14 +4,12 @@ on:
   push:
     branches:
       - main
-
   pull_request:
     branches:
       - main
 
 jobs:
   verify:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -19,7 +17,6 @@ jobs:
         python-version: ["3.10", "3.11"]
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -33,35 +30,37 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-cov pytest-html
 
+      # 1. Run Unit Tests First (Fail Fast)
       - name: Run Unit Tests
         run: |
           python -m pytest tests/test_unit.py -v
 
+      # 2. Run Integration Tests Second
       - name: Run Integration Tests
         run: |
           python -m pytest tests/test_integration.py -v
 
-      - name: Check Test Coverage
-        run: |
-          python -m pytest tests/ --cov=. --cov-report=term --cov-fail-under=90
-
-      - name: Generate HTML Test Report
+      # 3. Check Coverage AND Generate HTML Reports in one step
+      # We use 'continue-on-error: true' so that if coverage < 90%, 
+      # the job doesn't stop before it can upload the reports.
+      - name: Check Coverage and Generate HTML Reports
         if: always()
         continue-on-error: true
         run: |
-          python -m pytest tests/ --html=report.html --self-contained-html
+          python -m pytest tests/ \
+            --cov=. \
+            --cov-report=term \
+            --cov-report=html:htmlcov \
+            --html=report.html \
+            --self-contained-html \
+            --cov-fail-under=90
 
-      - name: Generate HTML Coverage Report
-        if: always()
-        continue-on-error: true
-        run: |
-          python -m pytest tests/ --cov=. --cov-report=html
-
-      - name: Upload Test Reports
+      # 4. Upload Reports
+      - name: Upload Test and Coverage Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports-${{ matrix.python-version }}
+          name: test-reports-py${{ matrix.python-version }}
           path: |
             report.html
             htmlcov/
